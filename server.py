@@ -1,10 +1,13 @@
+# -*- encoding: utf-8 -*-
+
 import socket
 import threading
 import time
 
 class Server(object):
-    '''Server class'''
+    '''TCP Server class'''
     connections = {}
+    threads = {}
     def __init__(self, port):
         self.port = port
         self.socket = socket.socket()
@@ -14,40 +17,24 @@ class Server(object):
         while True:
             conn, addr = self.socket.accept()
             print addr
-            Server.connections[addr[0]] = conn
-            ct = threading.Thread(target = self.connection, args=(conn,))
-            ct.daemon = True
-            ct.start()
+            Server.connections[conn] = addr
+            Server.threads[conn] = threading.Thread(
+                target = self.connection, args=(conn,))
+            Server.threads[conn].start()
     def stop(self):
         self.socket.close()
     def connection(self, conn):
-        while conn:
-            data = conn.recv(1024)
-            print data
+        while True:
+            try:
+                data = conn.recv(1024)
+                print data
+            except Exception as e:
+                print 'Client ' + Server.connections[conn][0],\
+                str(Server.connections[conn][1]) + ' disconnected!'
+                break
             if not data:
                 break
             conn.send("Got it " + str(data))
         conn.close()
-srv = Server(1488)
-while True:
-    print '''
-    Enter number for action:
-    1. Start
-    2. Stop
-    3. Connections list
-    0. Exit
-    '''
-    choise = raw_input('> ')
-    if choise == '1':
-        ct = threading.Thread(target = srv.start)
-        ct.daemon = True
-        ct.start()
-        print 'started'
-    elif choise == '2':
-        srv.stop()
-    elif choise == '3':
-        print Server.connections
-    elif choise == '0':
-        break
-    else:
-        print 'Wrong choise'
+        del Server.connections[conn]
+        del Server.threads[conn]
