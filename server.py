@@ -22,6 +22,10 @@ class Server(object):
                 target = self.connection, args=(conn,))
             Server.threads[conn].start()
     def stop(self):
+        for conn in Server.connections:
+            conn.close()
+        Server.connections = {}
+        Server.threads = {}
         self.socket.close()
     def connection(self, conn):
         while True:
